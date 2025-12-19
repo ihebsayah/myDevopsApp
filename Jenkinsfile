@@ -1,16 +1,10 @@
 pipeline {
-    // Utilisation d'un agent Docker avec Docker-in-Docker
-    agent {
-        docker {
-            image 'docker:24.0.2-dind' // Image Docker officielle avec DinD
-            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
         DOCKER_REGISTRY = 'docker.io'
-        DOCKER_USERNAME = 'iheb1603'  // <--- CHANGE: ton username Docker Hub
-        REPO_NAME = 'monapp'           // <--- CHANGE: nom de ton application
+        DOCKER_USERNAME = 'iheb1603'
+        REPO_NAME = 'monapp'
         IMAGE_SERVER = "${DOCKER_USERNAME}/${REPO_NAME}-serveur"
         IMAGE_CLIENT = "${DOCKER_USERNAME}/${REPO_NAME}-client"
     }
@@ -49,16 +43,12 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
                     script {
-                        echo "=== Login Docker Hub ==="
                         sh "echo \"${DOCKER_PASSWORD}\" | docker login -u ${DOCKER_USER} --password-stdin ${DOCKER_REGISTRY}"
 
                         def imageTag = "build-${env.BUILD_NUMBER}"
 
-                        echo "=== Push images Serveur ==="
                         sh "docker push ${IMAGE_SERVER}:${imageTag}"
                         sh "docker push ${IMAGE_SERVER}:latest"
-
-                        echo "=== Push images Client ==="
                         sh "docker push ${IMAGE_CLIENT}:${imageTag}"
                         sh "docker push ${IMAGE_CLIENT}:latest"
                     }
