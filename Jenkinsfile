@@ -12,17 +12,19 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
                     sh '''
-                    docker run --rm -v $PWD:/workspace -w /workspace docker:24.0.5-dind sh -c "
-                        echo '$DOCKER_PASSWORD' | docker login -u $DOCKER_USER --password-stdin $DOCKER_REGISTRY
+                        echo "$DOCKER_PASSWORD" | docker login -u $DOCKER_USER --password-stdin $DOCKER_REGISTRY
+                        
+                        # Build and push server image
                         docker build -t $IMAGE_SERVER:build-$BUILD_NUMBER ./serveur
                         docker tag $IMAGE_SERVER:build-$BUILD_NUMBER $IMAGE_SERVER:latest
                         docker push $IMAGE_SERVER:build-$BUILD_NUMBER
                         docker push $IMAGE_SERVER:latest
+                        
+                        # Build and push client image
                         docker build -t $IMAGE_CLIENT:build-$BUILD_NUMBER ./client
                         docker tag $IMAGE_CLIENT:build-$BUILD_NUMBER $IMAGE_CLIENT:latest
                         docker push $IMAGE_CLIENT:build-$BUILD_NUMBER
                         docker push $IMAGE_CLIENT:latest
-                    "
                     '''
                 }
             }
