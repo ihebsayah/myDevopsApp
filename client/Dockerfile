@@ -1,7 +1,7 @@
 FROM gcc:11 AS build
 WORKDIR /app
 COPY . .
-RUN gcc -o client client.c
+RUN gcc -static -o client client.c
 
 FROM alpine:latest
 WORKDIR /usr/local/bin
