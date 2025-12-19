@@ -21,6 +21,7 @@ int sockfd, error, i, nbOct;
 struct addrinfo hints, *res, *lecture;
 void *addr;
 char buffer[50], port[10]="5000";
+if(argc>2) strcpy(port, argv[2]);
 if(argc<2)
 {
 fprintf(stderr,"Erreur: l'adresse/nom du destinataire est manquant.\n");
@@ -31,7 +32,10 @@ sleep(3);
 memset(&hints,0,sizeof(hints));
 hints.ai_family = AF_INET;
 hints.ai_socktype = SOCK_STREAM;
-if((error=getaddrinfo(argv[1],port,&hints,&res))!=0) gai_strerror(error);
+if((error=getaddrinfo(argv[1],port,&hints,&res))!=0) {
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
+    exit(1);
+}
 if((sockfd=socket(res->ai_family, res->ai_socktype, res->ai_protocol))<0) erreur("Erreur socket():",2);
 printf("Client: connexion sur %s sur le port %s\n",argv[1],port);
 if(connect(sockfd, res->ai_addr, res->ai_addrlen)==0)

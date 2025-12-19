@@ -30,5 +30,10 @@ pipeline {
                 }
             }
         }
+        stage('Deploy') {
+            steps {
+                sh 'kubectl rollout restart deployment client-deployment serveur-deployment'
+            }
+        }
     }
 }
