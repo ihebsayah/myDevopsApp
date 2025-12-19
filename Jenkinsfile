@@ -12,7 +12,8 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
                     sh '''
-                        echo "$DOCKER_PASSWORD" | docker login -u $DOCKER_USER --password-stdin $DOCKER_REGISTRY
+                        set -e
+                        printf '%s\n' "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin "$DOCKER_REGISTRY"
                         
                         # Build and push server image
                         docker build -t $IMAGE_SERVER:build-$BUILD_NUMBER ./serveur
