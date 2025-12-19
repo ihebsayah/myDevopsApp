@@ -13,3 +13,5 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./jenkins_home:/var/jenkins_home
+      - ./kubeconfig-jenkins:/root/.kube/config:ro
+      - ~/.minikube:/Users/ihebsayah/.minikube:ro

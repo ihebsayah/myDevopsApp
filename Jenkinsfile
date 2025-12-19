@@ -33,9 +33,25 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
+                    # Set kubeconfig path
+                    export KUBECONFIG=/root/.kube/config
+                    
+                    # Download kubectl
                     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
                     chmod +x kubectl
+                    
+                    # Verify cluster connectivity
+                    echo "Verifying Kubernetes cluster connectivity..."
+                    ./kubectl cluster-info
+                    
+                    # Restart deployments to pull latest images
+                    echo "Restarting deployments..."
                     ./kubectl rollout restart deployment client-deployment serveur-deployment
+                    
+                    # Wait for rollout to complete
+                    echo "Waiting for rollout to complete..."
+                    ./kubectl rollout status deployment client-deployment
+                    ./kubectl rollout status deployment serveur-deployment
                 '''
             }
         }
