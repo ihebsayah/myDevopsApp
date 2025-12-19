@@ -1,7 +1,8 @@
-FROM gcc:11 AS build
+FROM alpine:latest AS build
+RUN apk add --no-cache build-base
 WORKDIR /app
 COPY . .
-RUN gcc -static -o client client.c
+RUN gcc -o client client.c
 
 FROM alpine:latest
 WORKDIR /usr/local/bin
