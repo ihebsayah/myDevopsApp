@@ -1,10 +1,16 @@
 pipeline {
-    agent any
+    // Utilisation d'un agent Docker avec Docker-in-Docker
+    agent {
+        docker {
+            image 'docker:24.0.2-dind' // Image Docker officielle avec DinD
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         DOCKER_REGISTRY = 'docker.io'
-        DOCKER_USERNAME = 'iheb1603' // <- Ton nom d'utilisateur Docker Hub
-        REPO_NAME = 'monapp'          // <- Nom de ton application
+        DOCKER_USERNAME = 'iheb1603'  // <--- CHANGE: ton username Docker Hub
+        REPO_NAME = 'monapp'           // <--- CHANGE: nom de ton application
         IMAGE_SERVER = "${DOCKER_USERNAME}/${REPO_NAME}-serveur"
         IMAGE_CLIENT = "${DOCKER_USERNAME}/${REPO_NAME}-client"
     }
@@ -19,10 +25,7 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                script {
-                    echo "=== Build et tests inclus dans Dockerfile multi-stage ==="
-                    // Si tu veux ajouter des tests locaux avant Docker build, tu peux le faire ici
-                }
+                echo "=== Build et tests inclus dans Dockerfile multi-stage ==="
             }
         }
 
@@ -51,11 +54,11 @@ pipeline {
 
                         def imageTag = "build-${env.BUILD_NUMBER}"
 
-                        echo "=== Push de l'image Serveur ==="
+                        echo "=== Push images Serveur ==="
                         sh "docker push ${IMAGE_SERVER}:${imageTag}"
                         sh "docker push ${IMAGE_SERVER}:latest"
 
-                        echo "=== Push de l'image Client ==="
+                        echo "=== Push images Client ==="
                         sh "docker push ${IMAGE_CLIENT}:${imageTag}"
                         sh "docker push ${IMAGE_CLIENT}:latest"
                     }
@@ -65,17 +68,13 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    def imageTag = "build-${env.BUILD_NUMBER}"
+                echo "=== Mise à jour des manifestes Kubernetes ==="
+                sh "sed -i 's|image: .*monapp-serveur:.*|image: ${IMAGE_SERVER}:build-${env.BUILD_NUMBER}|g' ci-cd-config/k8s-serveur-deployment.yaml"
+                sh "sed -i 's|image: .*monapp-client:.*|image: ${IMAGE_CLIENT}:build-${env.BUILD_NUMBER}|g' ci-cd-config/k8s-client-deployment.yaml"
 
-                    echo "=== Mise à jour des images dans Kubernetes ==="
-                    sh "kubectl set image deployment/serveur-deployment serveur=${IMAGE_SERVER}:${imageTag} --record"
-                    sh "kubectl set image deployment/client-deployment client=${IMAGE_CLIENT}:${imageTag} --record"
-
-                    echo "=== Appliquer les manifests (si nécessaire) ==="
-                    sh "kubectl apply -f ci-cd-config/k8s-serveur-deployment.yaml || true"
-                    sh "kubectl apply -f ci-cd-config/k8s-client-deployment.yaml || true"
-                }
+                echo "=== Déploiement sur le cluster Kubernetes ==="
+                sh "kubectl apply -f ci-cd-config/k8s-serveur-deployment.yaml"
+                sh "kubectl apply -f ci-cd-config/k8s-client-deployment.yaml"
             }
         }
     }
@@ -83,11 +82,10 @@ pipeline {
     post {
         always {
             echo "=== Nettoyage des images Docker locales ==="
-            sh "docker rmi ${IMAGE_SERVER}:${env.BUILD_NUMBER} ${IMAGE_SERVER}:latest || true"
-            sh "docker rmi ${IMAGE_CLIENT}:${env.BUILD_NUMBER} ${IMAGE_CLIENT}:latest || true"
-        }
-        success {
-            echo "=== Pipeline terminé avec succès ==="
+            sh "docker rmi -f ${IMAGE_SERVER}:build-${env.BUILD_NUMBER} ${IMAGE_SERVER}:latest || true"
+            sh "docker rmi -f ${IMAGE_CLIENT}:build-${env.BUILD_NUMBER} ${IMAGE_CLIENT}:latest || true"
+
+            echo "=== Pipeline terminé ==="
         }
         failure {
             echo "=== Pipeline échoué ==="
